@@ -1,16 +1,14 @@
-# Ignorar ejecutables y binarios
+# Compilaciones nuitka
 exe/
-*.exe
-
-# Ignorar temporales
-*.DS_Store
-Thumbs.db
-
-# Ignorar carpetas de compilación (si existieran)
-dist/
-build/
-exe/
-*.exe
-build/
-dist/
+*.build/
+*.dist/
+*.pyc
 __pycache__/
+*.o
+*.c
+*.const
+*.bin
+*.txt
+*.so
+*.pyd
+__bytecode.*

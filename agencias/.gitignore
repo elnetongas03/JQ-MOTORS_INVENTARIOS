@@ -9,3 +9,8 @@ Thumbs.db
 # Ignorar carpetas de compilación (si existieran)
 dist/
 build/
+exe/
+*.exe
+build/
+dist/
+__pycache__/

@@ -12,3 +12,4 @@ __pycache__/
 *.so
 *.pyd
 __bytecode.*
+exe/

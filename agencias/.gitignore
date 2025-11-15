@@ -1,0 +1,11 @@
+# Ignorar ejecutables y binarios
+exe/
+*.exe
+
+# Ignorar temporales
+*.DS_Store
+Thumbs.db
+
+# Ignorar carpetas de compilación (si existieran)
+dist/
+build/

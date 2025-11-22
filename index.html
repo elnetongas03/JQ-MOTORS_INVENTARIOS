@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JQ Motors - Inventario</title>
+
+<style>
+/* ============================ */
+/*      ESTILOS MODERNOS        */
+/* ============================ */
+body {
+  margin: 0;
+  font-family: 'Montserrat', sans-serif;
+  background: #f0f4f8;  /* fondo suave */
+  color: #1c1c1c;
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background: #2c3e70;  /* azul marino intenso */
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sidebar button {
+  background: #d98ca1;  /* guinda vibrante */
+  color: #fff;
+  border: none;
+  padding: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar button:hover,
+.sidebar button.active {
+  background: #c05f7b;    /* guinda más oscuro al hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}
+
+.main-content {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+  background: #f8f9fb;
+}
+
+section {
+  display: none;
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+section.active { display: block; }
+
+h2 { color: #2c3e70; margin-top: 0; font-weight: 700; }
+
+input, select {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #1c1c1c;
+  margin-right: 10px;
+  margin-bottom: 10px;
+  outline: none;
+  flex: 1 1 150px;
+  transition: 0.3s;
+}
+
+input:focus, select:focus { 
+  box-shadow: 0 0 8px #d98ca1; 
+  border-color: #d98ca1;
+}
+
+button.btn-add { background: #d98ca1; color: #fff; }
+button.btn-delete { background: #e74c3c; color: #fff; }
+button.btn-export { background: #2c3e70; color: #fff; }
+button.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.2); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: #fcfcfc;
+}
+
+th { 
+  background-color: #2c3e70; 
+  font-weight: 600; 
+  color: #fff; 
+  padding: 12px;
+}
+
+td { 
+  border-bottom: 1px solid #ddd; 
+  color: #1c1c1c; 
+  padding: 10px; 
+  text-align: center; 
+}
+
+tr:hover td { background-color: #f2f7ff; }
+
+@media (max-width: 768px){
+  body { flex-direction: column; }
+  .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .sidebar button { flex: 1 1 45%; margin-bottom: 10px; }
+  input, select { flex: 1 1 100%; margin-bottom: 10px; }
+  table { font-size: 0.9rem; }
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+<div class="sidebar">
+  <button class="active" data-tab="inventario">Inventario</button>
+  <button data-tab="ventas">Ventas</button>
+  <button data-tab="cotizacion">Cotización</button>
+  <button data-tab="taller">Taller</button>
+</div>
+
+<div class="main-content">
+
+<!-- INVENTARIO -->
+<section id="inventario" class="active">
+<h2>Inventario</h2>
+<div>
+<input type="text" id="busqueda-codigo" placeholder="Código">
+<button class="btn btn-add" onclick="buscarCodigo()">Buscar</button>
+<input type="text" id="busqueda-desc" placeholder="Descripción">
+<button class="btn btn-add" onclick="buscarDescripcion()">Buscar</button>
+<button class="btn btn-export" onclick="importarInventario()">Importar</button>
+<button class="btn btn-export" onclick="exportarInventario()">Exportar</button>
+</div>
+<table id="tabla-inventario">
+<thead>
+<tr><th>Código</th><th>Descripción</th><th>Ubicación</th><th>Stock</th><th>Precio</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+</section>
+
+<!-- VENTAS -->
+<section id="ventas">
+<h2>Ventas</h2>
+<div>
+<input type="text" id="venta-codigo" placeholder="Código">
+<input type="text" id="venta-desc" placeholder="Descripción" readonly>
+<input type="text" id="venta-precio" placeholder="Precio" readonly>
+<input type="number" id="venta-cant" placeholder="Cantidad">
+<button class="btn btn-add" onclick="agregarVenta()">Agregar</button>
+</div>
+<div>
+<select id="forma-pago">
+<option value="Efectivo">Efectivo</option>
+<option value="Tarjeta">Tarjeta</option>
+<option value="Transferencia">Transferencia</option>
+</select>
+<button class="btn btn-export" onclick="guardarVenta()">Guardar Excel</button>
+</div>
+<table id="tabla-ventas">
+<thead>
+<tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Total</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+</section>
+
+<!-- COTIZACIÓN -->
+<section id="cotizacion">
+<h2>Cotización</h2>
+<div>
+<input type="text" id="cot-codigo" placeholder="Código">
+<input type="text" id="cot-desc" placeholder="Descripción">
+<input type="text" id="cot-precio" placeholder="Precio">
+<input type="number" id="cot-cant" placeholder="Cantidad">
+<select id="cot-disp">
+<option value="Disponible">Disponible</option>
+<option value="No disponible">No disponible</option>
+</select>
+<button class="btn btn-add" onclick="agregarCotizacion()">Agregar</button>
+</div>
+<table id="tabla-cotizacion">
+<thead>
+<tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Total</th><th>Disponibilidad</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+<div>
+<strong>Total:</strong> <span id="total-cot">0.00</span>
+<button class="btn btn-export" onclick="guardarCotizacion()">Guardar Excel</button>
+<button class="btn btn-export" onclick="crearTicketPDF()">Crear PDF</button>
+</div>
+</section>
+
+<!-- TALLER -->
+<section id="taller">
+<h2>Taller</h2>
+<div>
+<input type="text" id="taller-codigo" placeholder="Código">
+<input type="text" id="taller-desc" placeholder="Descripción">
+<input type="text" id="taller-precio" placeholder="Precio">
+<input type="number" id="taller-cant" placeholder="Cantidad" value="1">
+<input type="text" id="taller-total" placeholder="Total" readonly>
+<button class="btn btn-add" onclick="agregarTaller()">Agregar Insumo</button>
+</div>
+<table id="tabla-taller">
+<thead>
+<tr><th>Código</th><th>Descripción</th><th>Precio</th><th>Cantidad</th><th>Total</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+<div>
+<strong>Total Taller:</strong> <span id="total-taller">0.00</span>
+<button class="btn btn-export" onclick="guardarTaller()">Guardar Excel</button>
+<button class="btn btn-export" onclick="crearPDFTaller()">Crear PDF</button>
+</div>
+</section>
+
+</div>
+
+<script>
+// -----------------
+// TAB NAV
+// -----------------
+const tabs = document.querySelectorAll(".sidebar button");
+const sections = document.querySelectorAll("section");
+tabs.forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    tabs.forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    sections.forEach(sec=>sec.classList.remove("active"));
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+// -----------------
+// DATOS
+// -----------------
+let inventario=[], ventas=[], cotizacion=[], taller=[];
+
+// -----------------
+// INVENTARIO
+// -----------------
+function buscarCodigo(){ alert("Buscar código"); }
+function buscarDescripcion(){ alert("Buscar descripción"); }
+function importarInventario(){ alert("Importar inventario"); }
+function exportarInventario(){ alert("Exportar inventario"); }
+
+// -----------------
+// VENTAS
+// -----------------
+function agregarVenta(){
+let cod=document.getElementById("venta-codigo").value;
+let desc=document.getElementById("venta-desc").value;
+let precio=parseFloat(document.getElementById("venta-precio").value)||0;
+let cant=parseInt(document.getElementById("venta-cant").value)||0;
+let total=precio*cant;
+ventas.push({cod,desc,precio,cant,total});
+renderVentas();
+}
+function renderVentas(){
+let tbody=document.querySelector("#tabla-ventas tbody");
+tbody.innerHTML="";
+ventas.forEach((v)=>{
+let row=document.createElement("tr");
+row.innerHTML=`<td>${v.cod}</td><td>${v.desc}</td><td>${v.precio}</td><td>${v.cant}</td><td>${v.total}</td>`;
+tbody.appendChild(row);
+});
+}
+function guardarVenta(){ alert("Guardar Excel de ventas"); }
+
+// -----------------
+// COTIZACIÓN
+// -----------------
+function agregarCotizacion(){
+let cod=document.getElementById("cot-codigo").value;
+let desc=document.getElementById("cot-desc").value;
+let precio=parseFloat(document.getElementById("cot-precio").value)||0;
+let cant=parseInt(document.getElementById("cot-cant").value)||0;
+let disp=document.getElementById("cot-disp").value;
+let total=precio*cant;
+cotizacion.push({cod,desc,precio,cant,total,disp});
+renderCotizacion();
+}
+function renderCotizacion(){
+let tbody=document.querySelector("#tabla-cotizacion tbody");
+tbody.innerHTML="";
+let totalG=0;
+cotizacion.forEach((c)=>{
+let row=document.createElement("tr");
+row.innerHTML=`<td>${c.cod}</td><td>${c.desc}</td><td>${c.precio}</td><td>${c.cant}</td><td>${c.total}</td><td>${c.disp}</td>`;
+tbody.appendChild(row);
+totalG+=c.total;
+});
+document.getElementById("total-cot").innerText=totalG.toFixed(2);
+}
+function guardarCotizacion(){ alert("Guardar Excel cotización"); }
+function crearTicketPDF(){ alert("Crear PDF cotización"); }
+
+// -----------------
+// TALLER
+// -----------------
+function agregarTaller(){
+let cod=document.getElementById("taller-codigo").value;
+let desc=document.getElementById("taller-desc").value;
+let precio=parseFloat(document.getElementById("taller-precio").value)||0;
+let cant=parseInt(document.getElementById("taller-cant").value)||0;
+let total=precio*cant;
+taller.push({cod,desc,precio,cant,total});
+renderTaller();
+}
+function renderTaller(){
+let tbody=document.querySelector("#tabla-taller tbody");
+tbody.innerHTML="";
+let totalG=0;
+taller.forEach((t)=>{
+let row=document.createElement("tr");
+row.innerHTML=`<td>${t.cod}</td><td>${t.desc}</td><td>${t.precio}</td><td>${t.cant}</td><td>${t.total}</td>`;
+tbody.appendChild(row);
+totalG+=t.total;
+});
+document.getElementById("total-taller").innerText=totalG.toFixed(2);
+}
+function guardarTaller(){ alert("Guardar Excel taller"); }
+function crearPDFTaller(){ alert("Crear PDF taller"); }
+</script>
+
+</body>
+</html>
